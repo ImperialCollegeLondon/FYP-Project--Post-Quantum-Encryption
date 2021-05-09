@@ -16,17 +16,15 @@ class ntru():
     q = None
 
     f = None
-    g = None
 
     f_p = None
     f_q = None
 
-    domain = None
+    g = None
 
-    public_key = None
-    private_key = None
+    r_space = None
 
-    sample_store = None
+    h = None
 
     def __init__(self,n,p,q):
 
