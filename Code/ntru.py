@@ -105,7 +105,7 @@ class ntru():
 
         self.h = (((self.p * self.f_q).trunc(self.q) * self.g).trunc(self.q) % self.r_space).trunc(self.q)
 
-        print("PUBLIC KEY: ", self.h)
+        print("Public Key: ", self.h)
 
 
     def encrypt(self,m):
