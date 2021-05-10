@@ -2,6 +2,7 @@
 import numpy as np
 from random import randint
 import math
+import hashlib
 
 
 #Sympy imports (used for poly space)
@@ -33,8 +34,6 @@ def bytes_to_bits(byte_array):
     for byte in byte_array:
         bit_array += [int(bit) for bit in np.binary_repr(byte,width=8)]
 
-    print("Bit array", bit_array)
-
     return bit_array
 
 
@@ -44,15 +43,12 @@ def bits_to_bytes(bit_array):
     two_power = 1
 
     for bit in bit_array[::-1]:
-        # print("bit", bit)
         byte_value += two_power * bit
         two_power = two_power * 2
 
 
     if byte_value > 255:
         raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
-
-    print("Byte Value", byte_value)
 
     return byte_value
 
@@ -137,7 +133,6 @@ class ntru():
         f_valid = False
 
         while(attempts < max_attempts and f_valid == False):
-            print(attempts)
             f_factors = 0
             for i in range(0,self.n):
                 f_factors += randint(-1,1) * x**i
@@ -167,15 +162,12 @@ class ntru():
 
         self.g = self.g_gen()
 
-        self.f = self.f_gen(20) #can change max attempts here, set to 20 by default as this was sufficient in early testing
+        self.f = self.f_gen(20) #can change max attempts here, set to 20 by default as this was sufficient in early ntru_instanceing
 
         self.h = (((self.p * self.f_q).trunc(self.q) * self.g).trunc(self.q) % self.r_space).trunc(self.q)
 
-        print("Public Key: ", self.h)
-
 
     def encrypt(self,m):
-        print("Original message", m)
 
         r = self.r_gen()
 
@@ -197,45 +189,63 @@ class ntru():
 
 
 
-test = ntru(167,3,128)
-test.key_gen()
+def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+    
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
 
-string = "liluzivertsantandave"
+    # message_string = "test"
 
-encoded_string = string.encode("utf-8")
+    decoded_full_string = ""
 
-byte_list = list(encoded_string)
+    splits = int(math.ceil(len(message_string)/(n/8))) #define to be 8 here because we're just using UTF-8 256. 
+    split_size = int(math.floor(n/8))
 
-bit_list = bytes_to_bits(byte_list)
+    for i in range(0,splits):
 
-original_m = Poly(bit_list,x).set_domain(ZZ)
-print(original_m)
+        partial_msg_string = message_string[(i*split_size) : (i+1)*split_size]
 
-encrypted_m = test.encrypt(original_m)
-decrypted_m = test.decrypt(encrypted_m)
+        # partial_msg_string = message_string[(i*split_size) : min(len(message_string),(i+1)*split_size)]
+        
+        encoded_string = partial_msg_string.encode("utf-8")
 
-print("Decrypted polynomial", decrypted_m)
+        byte_list = list(encoded_string)
 
-coeffs = bit_padding(decrypted_m.all_coeffs())
+        bit_list = bytes_to_bits(byte_list)
 
-print("coeffs", coeffs)
+        original_m = Poly(bit_list,x).set_domain(ZZ)
 
-print(type(coeffs))
+        encrypted_m = ntru_instance.encrypt(original_m)
+        decrypted_m = ntru_instance.decrypt(encrypted_m)
 
-# print("byte coeffs", bits_to_bytes(coeffs))
+        coeffs = bit_padding(decrypted_m.all_coeffs())
 
-decoded_string = string_decode(coeffs)
+        decoded_string = string_decode(coeffs)
+
+        decoded_full_string += decoded_string
 
 
-# decoded_string = bytes([bits_to_bytes(coeffs)]).decode("utf-8")
+    if detailed_stats:
+        detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+        return(detailed_stats_dict,decoded_full_string)
+    
+    else:
+        return(decoded_full_string)
 
-print("Decoded string", decoded_string)
 
+
+text_file = open("lorem_ipsum_test.txt", "r").read()
+
+print(ntru_end_to_end(text_file))
+
+
+
+# print(ntru_end_to_end("super duper long string just to see whether this can be decoded a;sjdf;ajsdfkl;jals;dfjl;asjdf;ajsdl;fja;lksdfj"))
 
 
 # value_list = [87,503,347,251,167]
 
-value_list = [167,251]
+# value_list = [167,251]
 
 # total_unsucc = 0 
 # for j in value_list:
@@ -248,14 +258,14 @@ value_list = [167,251]
 #       tetta = 1
 #       eta = 1
 
-#       random_test = 1
-#       original_m = Poly(-1 + random_test*x + random_test*x**2 + x**3 + x**4 + x**9 + x**10 + x**166,x).set_domain(ZZ)
+#       random_ntru_instance = 1
+#       original_m = Poly(-1 + random_ntru_instance*x + random_ntru_instance*x**2 + x**3 + x**4 + x**9 + x**10 + x**166,x).set_domain(ZZ)
 
 
-#       test = ntru(j,3,128)
-#       test.key_gen()
-#       encrypted_m = test.encrypt(original_m)
-#       decrypted_m = test.decrypt(encrypted_m)
+#       ntru_instance = ntru(j,3,128)
+#       ntru_instance.key_gen()
+#       encrypted_m = ntru_instance.encrypt(original_m)
+#       decrypted_m = ntru_instance.decrypt(encrypted_m)
 
 #       if(decrypted_m == original_m):
 #           print("SUCCESSFUL DECRYPTION")
