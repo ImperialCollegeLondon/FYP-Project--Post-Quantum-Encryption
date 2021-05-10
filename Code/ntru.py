@@ -10,6 +10,72 @@ from sympy.abc import x
 from sympy.polys.polyerrors import NotInvertible
 
 
+def bytes_to_bits(byte_array):
+
+    """
+    Name:        bytes_to_bits
+
+    Description: Converts byte array to bit array
+
+    Arguments:   - byte_array: Array of bytes, where elements in array in [0,255]  
+
+    Returns:     - bit_array: Array of bits, where elements in array are 0 or 1
+    """
+    
+    if max(byte_array) > 255:
+        raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
+
+    elif min(byte_array) < 0:
+        raise ValueError("Min Byte val: ", min(byte_array), " not in valid range")
+
+    bit_array = []
+
+    for byte in byte_array:
+        bit_array += [int(bit) for bit in np.binary_repr(byte,width=8)]
+
+    print("Bit array", bit_array)
+
+    return bit_array
+
+
+
+def bits_to_bytes(bit_array):
+    byte_value = 0
+    two_power = 1
+
+    for bit in bit_array[::-1]:
+        # print("bit", bit)
+        byte_value += two_power * bit
+        two_power = two_power * 2
+
+
+    if byte_value > 255:
+        raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
+
+    print("Byte Value", byte_value)
+
+    return byte_value
+
+
+def bit_padding(bit_array):
+    excess = len(bit_array) % 8
+
+    if excess == 0:
+        return bit_array
+
+    else:
+        bit_array = [0]*(8-excess) + bit_array
+        return bit_array
+
+
+def string_decode(bit_array):
+    output_string = ""
+    for i in range(0,int(len(bit_array)/8)):
+        output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8])]).decode("utf-8")
+
+    return output_string
+        
+
 class ntru():
     n = None
     p = None
@@ -130,37 +196,78 @@ class ntru():
         return c
 
 
-value_list = [87,503,347,251,167]
 
-total_unsucc = 0 
-for j in value_list:
-  successful_cnt = 0
-  unsuccessful_cnt = 0
-  for i in range(0,50):
-      alpha = 1
-      beta = 1
-      gamma = 1
-      tetta = 1
-      eta = 1
+test = ntru(167,3,128)
+test.key_gen()
 
-      random_test = 1
-      original_m = Poly(-1 + random_test*x + random_test*x**2 + x**3 + x**4 + x**9 + x**10,x).set_domain(ZZ)
+string = "liluzivertsantandave"
+
+encoded_string = string.encode("utf-8")
+
+byte_list = list(encoded_string)
+
+bit_list = bytes_to_bits(byte_list)
+
+original_m = Poly(bit_list,x).set_domain(ZZ)
+print(original_m)
+
+encrypted_m = test.encrypt(original_m)
+decrypted_m = test.decrypt(encrypted_m)
+
+print("Decrypted polynomial", decrypted_m)
+
+coeffs = bit_padding(decrypted_m.all_coeffs())
+
+print("coeffs", coeffs)
+
+print(type(coeffs))
+
+# print("byte coeffs", bits_to_bytes(coeffs))
+
+decoded_string = string_decode(coeffs)
 
 
-      test = ntru(j,3,128)
-      test.key_gen()
-      encrypted_m = test.encrypt(original_m)
-      decrypted_m = test.decrypt(encrypted_m)
+# decoded_string = bytes([bits_to_bytes(coeffs)]).decode("utf-8")
 
-      if(decrypted_m == original_m):
-          print("SUCCESSFUL DECRYPTION")
-          successful_cnt += 1
-      else:
-          print("FAILED DECRYPTION")
-          unsuccessful_cnt += 1
+print("Decoded string", decoded_string)
 
 
-  print("Successful: ", successful_cnt)
 
-  print("Unsuccessful: ", unsuccessful_cnt)
-  total_unsucc += unsuccessful_cnt
+# value_list = [87,503,347,251,167]
+
+value_list = [167,251]
+
+# total_unsucc = 0 
+# for j in value_list:
+#   successful_cnt = 0
+#   unsuccessful_cnt = 0
+#   for i in range(0,50):
+#       alpha = 1
+#       beta = 1
+#       gamma = 1
+#       tetta = 1
+#       eta = 1
+
+#       random_test = 1
+#       original_m = Poly(-1 + random_test*x + random_test*x**2 + x**3 + x**4 + x**9 + x**10 + x**166,x).set_domain(ZZ)
+
+
+#       test = ntru(j,3,128)
+#       test.key_gen()
+#       encrypted_m = test.encrypt(original_m)
+#       decrypted_m = test.decrypt(encrypted_m)
+
+#       if(decrypted_m == original_m):
+#           print("SUCCESSFUL DECRYPTION")
+#           successful_cnt += 1
+#       else:
+#           print("FAILED DECRYPTION")
+#           unsuccessful_cnt += 1
+
+
+#   print("Successful: ", successful_cnt)
+
+#   print("Unsuccessful: ", unsuccessful_cnt)
+#   total_unsucc += unsuccessful_cnt
+
+
