@@ -1,14 +1,17 @@
 #Main math imports
+import os
+from base64 import b64encode
 import numpy as np
-from random import randint
+import random
+import string
 import math
-import hashlib
 
 
 #Sympy imports (used for poly space)
 from sympy import ZZ, Poly, invert, GF, isprime
 from sympy.abc import x
 from sympy.polys.polyerrors import NotInvertible
+
 
 
 def bytes_to_bits(byte_array):
@@ -107,7 +110,7 @@ class ntru():
     def r_gen(self):
         r_factors = 0
         for i in range(0,self.n):
-            r_factors += randint(-1,1) * x**i
+            r_factors += random.randint(-1,1) * x**i
 
         r = Poly(r_factors,x).set_domain(ZZ)
 
@@ -135,7 +138,7 @@ class ntru():
         while(attempts < max_attempts and f_valid == False):
             f_factors = 0
             for i in range(0,self.n):
-                f_factors += randint(-1,1) * x**i
+                f_factors += random.randint(-1,1) * x**i
 
 
             f = Poly(f_factors,x).set_domain(ZZ)
@@ -193,19 +196,24 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
     
     ntru_instance = ntru(n,p,q)
     ntru_instance.key_gen()
+    full_string_length = len(message_string)
 
     # message_string = "test"
 
     decoded_full_string = ""
 
-    splits = int(math.ceil(len(message_string)/(n/8))) #define to be 8 here because we're just using UTF-8 256. 
-    split_size = int(math.floor(n/8))
+    max_chars = int(math.floor(n/8))
+
+    if len(message_string) % max_chars == 0:
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+
+    else:
+        splits = splits = int(math.floor(full_string_length/max_chars)) + 1
 
     for i in range(0,splits):
 
-        partial_msg_string = message_string[(i*split_size) : (i+1)*split_size]
-
-        # partial_msg_string = message_string[(i*split_size) : min(len(message_string),(i+1)*split_size)]
+        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
+        partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
         
         encoded_string = partial_msg_string.encode("utf-8")
 
@@ -239,22 +247,41 @@ text_file = open("lorem_ipsum_test.txt", "r").read()
 print(ntru_end_to_end(text_file))
 
 
+def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
 
-# print(ntru_end_to_end("super duper long string just to see whether this can be decoded a;sjdf;ajsdfkl;jals;dfjl;asjdf;ajsdl;fja;lksdfj"))
+    valid_aes_sizes = [128,192,256]
+    if aes_size not in valid_aes_sizes:
+        raise ValueError("AES size has to be 128, 192 or 256 bits")
 
 
-# value_list = [87,503,347,251,167]
+    aes_key = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(int(aes_size/8)))
 
-# value_list = [167,251]
+    aes_key_byte_rep = aes_key.encode("utf-8")
 
-# total_unsucc = 0 
-# for j in value_list:
-#   successful_cnt = 0
-#   unsuccessful_cnt = 0
-#   for i in range(0,50):
-#       alpha = 1
-#       beta = 1
-#       gamma = 1
+    print(aes_key)
+
+    return (ntru_end_to_end(aes_key, n, p, q, detailed_stats),aes_key_byte_rep)
+    
+    
+
+
+print(ntru_aes_package())
+
+# # print(ntru_end_to_end("super duper long string just to see whether this can be decoded a;sjdf;ajsdfkl;jals;dfjl;asjdf;ajsdl;fja;lksdfj"))
+
+
+# # value_list = [87,503,347,251,167]
+
+# # value_list = [167,251]
+
+# # total_unsucc = 0 
+# # for j in value_list:
+# #   successful_cnt = 0
+# #   unsuccessful_cnt = 0
+# #   for i in range(0,50):
+# #       alpha = 1
+# #       beta = 1
+# #       gamma = 1
 #       tetta = 1
 #       eta = 1
 
