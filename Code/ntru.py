@@ -41,6 +41,31 @@ def bytes_to_bits(byte_array):
 
 
 
+def bytes_to_ternary(byte_array):
+
+
+    if max(byte_array) > 255:
+        raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
+
+    elif min(byte_array) < 0:
+        raise ValueError("Min Byte val: ", min(byte_array), " not in valid range")
+
+    ternary_array = []
+    for byte in byte_array:
+        for j in range(5,-1,-1):
+            if byte >= 2 * 3**j:
+                ternary_array.append(1)
+                byte -= 2 * 3**j
+            elif 3**j <= byte <= 2*3**j:
+                ternary_array.append(0)
+                byte -= 3**j
+            else:
+                ternary_array.append(-1)
+
+    return ternary_array
+
+
+
 def bits_to_bytes(bit_array):
     byte_value = 0
     two_power = 1
@@ -56,14 +81,14 @@ def bits_to_bytes(bit_array):
     return byte_value
 
 
-def bit_padding(bit_array):
-    excess = len(bit_array) % 8
+def bit_padding(bit_array,num_of_bits):
+    excess = len(bit_array) % num_of_bits
 
     if excess == 0:
         return bit_array
 
     else:
-        bit_array = [0]*(8-excess) + bit_array
+        bit_array = [0]*(num_of_bits-excess) + bit_array
         return bit_array
 
 
@@ -226,7 +251,7 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
         encrypted_m = ntru_instance.encrypt(original_m)
         decrypted_m = ntru_instance.decrypt(encrypted_m)
 
-        coeffs = bit_padding(decrypted_m.all_coeffs())
+        coeffs = bit_padding(decrypted_m.all_coeffs(),8)
 
         decoded_string = string_decode(coeffs)
 
@@ -263,6 +288,15 @@ def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
     
     
 
+def key_gen_helper(n=167,p=3,q=128):
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
+
+    return {"g":ntru_instance.g, "f": ntru_instance.f, "h": ntru_instance.h, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+
+
+
+print(key_gen_helper())
 
 print(ntru_aes_package())
 
