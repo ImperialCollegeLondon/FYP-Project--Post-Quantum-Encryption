@@ -253,7 +253,6 @@ def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
     if aes_size not in valid_aes_sizes:
         raise ValueError("AES size has to be 128, 192 or 256 bits")
 
-
     aes_key = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(int(aes_size/8)))
 
     aes_key_byte_rep = aes_key.encode("utf-8")
