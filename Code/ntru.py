@@ -7,6 +7,7 @@ import string
 import math
 
 
+
 #Sympy imports (used for poly space)
 from sympy import ZZ, Poly, invert, GF, isprime
 from sympy.abc import x
@@ -42,8 +43,6 @@ def bytes_to_bits(byte_array):
 
 
 def bytes_to_ternary(byte_array):
-
-
     if max(byte_array) > 255:
         raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
 
@@ -296,9 +295,61 @@ def key_gen_helper(n=167,p=3,q=128):
 
 
 
-print(key_gen_helper())
+def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+    
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
+    full_string_length = len(message_string)
 
-print(ntru_aes_package())
+    # message_string = "test"
+
+    decoded_full_string = ""
+
+    max_chars = int(math.floor(n/8))
+
+    if len(message_string) % max_chars == 0:
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+
+    else:
+        splits = splits = int(math.floor(full_string_length/max_chars)) + 1
+
+    for i in range(0,splits):
+
+        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
+        partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
+        
+        encoded_string = partial_msg_string.encode("utf-8")
+
+        byte_list = list(encoded_string)
+
+        bit_list = bytes_to_bits(byte_list)
+
+        original_m = Poly(bit_list,x).set_domain(ZZ)
+
+        encrypted_m = ntru_instance.encrypt(original_m)
+        decrypted_m = ntru_instance.decrypt(encrypted_m)
+
+        coeffs = bit_padding(decrypted_m.all_coeffs(),6)
+
+        decoded_string = string_decode(coeffs)
+
+        decoded_full_string += decoded_string
+
+
+    if detailed_stats:
+        detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+        return(detailed_stats_dict,decoded_full_string)
+    
+    else:
+        return(decoded_full_string)
+
+
+
+
+
+# print(key_gen_helper())
+
+# print(ntru_aes_package())
 
 # # print(ntru_end_to_end("super duper long string just to see whether this can be decoded a;sjdf;ajsdfkl;jals;dfjl;asjdf;ajsdl;fja;lksdfj"))
 
