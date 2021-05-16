@@ -97,6 +97,24 @@ def string_decode(bit_array):
         output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8])]).decode("utf-8")
 
     return output_string
+
+
+def parity_encode(bit_array):
+    one_count = sum(bit_array)
+    parity_bit = one_count % 2
+    bit_array.append(parity_bit)
+    return bit_array
+
+
+def parity_checker(bit_array,parity_bit):
+
+
+    if sum(bit_array) % 2 == parity_bit:
+        return True
+
+    else:
+        return False
+
         
 
 class ntru():
@@ -266,9 +284,9 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
 
 
 
-text_file = open("lorem_ipsum_test.txt", "r").read()
+# text_file = open("lorem_ipsum_test.txt", "r").read()
 
-print(ntru_end_to_end(text_file))
+# print(ntru_end_to_end(text_file))
 
 
 def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
@@ -342,6 +360,67 @@ def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_s
     
     else:
         return(decoded_full_string)
+
+
+
+def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+    
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
+    full_string_length = len(message_string)
+
+    # message_string = "test"
+
+    decoded_full_string = ""
+
+    max_chars = int(math.floor(n/8))
+
+    if len(message_string) % max_chars == 0:
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+
+    else:
+        splits = splits = int(math.floor(full_string_length/max_chars)) + 1
+
+    for i in range(0,splits):
+
+        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
+        partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
+        
+        encoded_string = partial_msg_string.encode("utf-8")
+
+        byte_list = list(encoded_string)
+
+        bit_list = bytes_to_bits(byte_list)
+
+        bit_list_with_parity = parity_encode(bit_list)
+
+        original_m = Poly(bit_list_with_parity,x).set_domain(ZZ)
+
+        encrypted_m = ntru_instance.encrypt(original_m)
+        decrypted_m = ntru_instance.decrypt(encrypted_m)
+
+        parity_bit = decrypted_m.all_coeffs()[-1]
+        coeffs = bit_padding(decrypted_m.all_coeffs()[:-1],8)
+
+        if parity_checker(coeffs,parity_bit) == False:
+            raise RuntimeError("Error in transmission, re-transmit message.")
+
+        decoded_string = string_decode(coeffs)
+
+        decoded_full_string += decoded_string
+
+
+    if detailed_stats:
+        detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+        return(detailed_stats_dict,decoded_full_string)
+    
+    else:
+        return(decoded_full_string)
+
+
+print(ntru_with_parity("test", n=167))
+
+
 
 
 
