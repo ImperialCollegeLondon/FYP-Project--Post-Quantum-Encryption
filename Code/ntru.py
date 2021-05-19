@@ -43,6 +43,18 @@ def bytes_to_bits(byte_array):
 
 
 def bytes_to_ternary(byte_array):
+
+    """
+    Name:        bytes_to_ternary
+
+    Description: Converts byte array to ternary array
+
+    Arguments:   - byte_array: Array of bytes, where elements in array in [0,255]  
+
+    Returns:     - ternary_array: Array of trits, where elements in array are -1, 0 or 1
+    """
+    
+
     if max(byte_array) > 255:
         raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
 
@@ -66,6 +78,17 @@ def bytes_to_ternary(byte_array):
 
 
 def bits_to_bytes(bit_array):
+
+    """
+    Name:        bits_to_bytes
+
+    Description: Converts bit array to a byte value
+
+    Arguments:   - bit_array: Array of bits, where elements in array in 0 or 1  
+
+    Returns:     - byte_value: Byte value in range [0,255]
+    """
+
     byte_value = 0
     two_power = 1
 
@@ -81,6 +104,18 @@ def bits_to_bytes(bit_array):
 
 
 def bit_padding(bit_array,num_of_bits):
+
+    """
+    Name:        bit_padding
+
+    Description: Adds padding to bit array, such that length of array is a multiple of 'num_of_bits'
+
+    Arguments:   - bit_array: Array of bits, where elements in array are 0 or 1  
+                 - num_of_bits: Length of array should be multiple of this. 8 for base 2, 6 for base 3
+
+    Returns:     - bit_array: Bit array, where elements in array are 0 or 1 with padding of value 0
+    """
+
     excess = len(bit_array) % num_of_bits
 
     if excess == 0:
@@ -92,6 +127,17 @@ def bit_padding(bit_array,num_of_bits):
 
 
 def string_decode(bit_array):
+
+    """
+    Name:        string_decode
+
+    Description: Decode the string, from bytes (in UTF-8 format) to a string
+
+    Arguments:   - bit_array: Array of bits, where elements in array are 0 or 1
+
+    Returns:     - output_string: Text string containing the message
+    """
+
     output_string = ""
     for i in range(0,int(len(bit_array)/8)):
         output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8])]).decode("utf-8")
@@ -100,6 +146,17 @@ def string_decode(bit_array):
 
 
 def parity_encode(bit_array):
+
+    """
+    Name:        parity_encode
+
+    Description: Adds single parity bit to end of array (0 or 1) depending on sum of bits
+
+    Arguments:   - bit_array: Array of bits, where elements in array are 0 or 1  
+
+    Returns:     - bit_array: Bit array, with parity bit at the end.
+    """
+
     one_count = sum(bit_array)
     parity_bit = one_count % 2
     bit_array.append(parity_bit)
@@ -108,6 +165,16 @@ def parity_encode(bit_array):
 
 def parity_checker(bit_array,parity_bit):
 
+    """
+    Name:        parity_checker
+
+    Description: Checks if the parity bit received matches with the bit array
+
+    Arguments:   - bit_array: Array of bits, where elements in array are 0 or 1  
+                 - parity_bit: Single bit, 0 or 1
+
+    Returns:     - Boolean: True if parity bit matches, else false
+    """
 
     if sum(bit_array) % 2 == parity_bit:
         return True
@@ -135,6 +202,21 @@ class ntru():
 
     def __init__(self,n,p,q):
 
+
+        """
+        Name:        init
+
+        Description: Initialiser for NTRU class, and defines r space for given parameters
+
+        Arguments:   - n: NTRU Parameter  
+                     - p: NTRU Parameter
+                     - q: NTRU Parameter
+
+                     Where n is prime, p and q are coprime.
+
+        Returns:     - Boolean: True if parity bit matches, else false
+        """
+
         self.n = n
         self.p = p
         self.q = q
@@ -142,6 +224,17 @@ class ntru():
 
 
     def g_gen(self):
+
+        """
+        Name:        g_gen
+
+        Description: Generates random polynomial g, used to create a random public key
+
+        Arguments:  None (values taken from class instance)
+
+        Returns:     - g: Random polynomial of maximum degree n
+        """
+
         num_ones = int(math.sqrt(self.q))
         num_zeros = self.n - 2*num_ones
 
@@ -150,6 +243,18 @@ class ntru():
         return Poly(g_factors,x).set_domain(ZZ)
 
     def r_gen(self):
+
+        """
+        Name:        r_gen
+
+        Description: Generates random polynomial r, used to encrypt the message
+
+        Arguments:   None (values taken from class instance)
+
+        Returns:     - r: Random polynomial of maximum degree n
+        """
+
+
         r_factors = 0
         for i in range(0,self.n):
             r_factors += random.randint(-1,1) * x**i
@@ -160,6 +265,18 @@ class ntru():
 
 
     def f_invert(self,f,mod_param):
+
+        """
+        Name:        f_invert
+
+        Description: Calculates the inverse of f modulo mod_param. Used to form public key.
+
+        Arguments:   - f: Polynomial of maximum degree n  
+                     - mod_param: Integer for which the inverse of f modulo calculated. mod_param = p or q
+
+        Returns:     - f_inv: Inverse of f modulo mod_param
+        """
+
         if math.log(mod_param,2) == int(math.log(mod_param,2)): 
             f_inv = invert(f,self.r_space, domain=GF(2,symmetric = False))
 
@@ -173,6 +290,19 @@ class ntru():
 
 
     def f_gen(self,max_attempts):
+
+        """
+        Name:        f_gen
+
+        Description: Generates random polynomial f, used to form private/public keys.
+
+        Arguments:   - max_attempts: Number of attempts to find f such that inverse of f mod p and q exists 
+
+
+        Returns:     - f_inv: Random polynomial f satisfying above criteria
+                     - RunTimeError: If inverse of f cannot be found in the given max attempts
+        """
+
         attempts = 0
 
         f_valid = False
@@ -205,6 +335,16 @@ class ntru():
 
     def key_gen(self):
 
+        """
+        Name:        key_gen
+
+        Description: Key generator function, calls g_gen, f_gen and h_gen to generate the necessary keys
+
+        Arguments:   None (values taken from class instance)
+
+        Returns:     None (stores in class instance)
+        """
+
         self.g = self.g_gen()
 
         self.f = self.f_gen(20) #can change max attempts here, set to 20 by default as this was sufficient in early ntru_instanceing
@@ -213,6 +353,16 @@ class ntru():
 
 
     def encrypt(self,m):
+
+        """
+        Name:        encrypt
+
+        Description: Encrypts the given message
+
+        Arguments:   - m: Message to be encrypted in bit array (0 or 1) 
+
+        Returns:     - e: Encrypted message (as SYMPY polynomial)
+        """
 
         r = self.r_gen()
 
@@ -223,9 +373,19 @@ class ntru():
         return e
 
 
-    def decrypt(self,encrypted_m):
+    def decrypt(self,e):
 
-        a = ((self.f * encrypted_m) % self.r_space).trunc(self.q)
+        """
+        Name:        decrypt
+
+        Description: Decrypts the message
+
+        Arguments:   - e: Encrypted message (as SYMPY polynomial)  
+
+        Returns:     - c: Decrypted message in bit array (0 or 1)
+        """
+
+        a = ((self.f * e) % self.r_space).trunc(self.q)
         b = a.trunc(self.p)
 
         c = ((self.f_p * b) % self.r_space).trunc(self.p)
