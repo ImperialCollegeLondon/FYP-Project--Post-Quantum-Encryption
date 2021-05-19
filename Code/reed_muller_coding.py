@@ -57,11 +57,7 @@ for i in range(2,r+1):
 
 test_matrix = np.array([1,1,1,1,0,1,0,0,1,1,0])
 
-print(val_list)
-
 encoded_transmission = np.dot(test_matrix,reed_muller_gen_matrix) % 2
-
-print(encoded_transmission)
 
 u = encoded_transmission
 
@@ -129,26 +125,3 @@ for degree in range(r,-1,-1):
 
 
 print("Decoded Message: ", decoded_message)
-
-
-
-
-
-
-
-
-# reed_muller_matrix = np.array(np.mat(reed_muller_txt))
-
-# new_row = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
-
-# reed_muller_matrix = np.vstack([reed_muller_matrix, new_row])
-
-# print(reed_muller_matrix)
-
-# # test = """0 1 1 0 1 0 0 1 0 1 0"""
-
-# # test_matrix = np.matrix(test)
-
-# # print(np.dot(test_matrix,reed_muller_matrix) % 2)
-
-
