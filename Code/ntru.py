@@ -395,26 +395,43 @@ class ntru():
 
 
 def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+
+    """
+    Name:        ntru_end_to_end
+
+    Description: End to end tester of NTRU Encrypt/Decrypt. Takes in message string, encrypts
+                 and decrypts. Used in testing of performance and verification of implementation.
+
+    Arguments:   - message_string: Message (string) to be encrypted
+                 - n: NTRU Parameter, set to 167 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 128 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+    """
     
     ntru_instance = ntru(n,p,q)
     ntru_instance.key_gen()
     full_string_length = len(message_string)
-
-    # message_string = "test"
 
     decoded_full_string = ""
 
     max_chars = int(math.floor(n/8))
 
     if len(message_string) % max_chars == 0:
-        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
 
     else:
         splits = splits = int(math.floor(full_string_length/max_chars)) + 1
 
     for i in range(0,splits):
 
-        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
         partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
         
         encoded_string = partial_msg_string.encode("utf-8")
@@ -451,6 +468,27 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
 
 def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
 
+    """
+    Name:        ntru_aes_package
+
+    Description: End to end tester of NTRU Encrypt/Decrypt, with AES symmetric key as payload.
+                 Generates random AES key, encrypts and decrypts. Used in testing of performance and verification of implementation.
+
+    Arguments:   - aes_size: Size of AES payload. 128,192 and 256 bit supported.
+                 - n: NTRU Parameter, set to 167 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 128 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+                 - ValueError if AES size not valid.
+    """
+
     valid_aes_sizes = [128,192,256]
     if aes_size not in valid_aes_sizes:
         raise ValueError("AES size has to be 128, 192 or 256 bits")
@@ -466,6 +504,20 @@ def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
     
 
 def key_gen_helper(n=167,p=3,q=128):
+
+    """
+    Name:        key_gen_helper
+
+    Description: Function to generate NTRU keys.
+
+    Arguments:   - n: NTRU Parameter, set to 167 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 128 by default
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - dictionary: Returns a dictionary containing key values: g,f,h,f_p and f_q
+    """
     ntru_instance = ntru(n,p,q)
     ntru_instance.key_gen()
 
@@ -474,26 +526,46 @@ def key_gen_helper(n=167,p=3,q=128):
 
 
 def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+
+    """
+    Name:        ntru_end_to_end_ternary
+
+    Description: End to end tester of NTRU Ternary Encrypt/Decrypt (base 3). Takes in message string, encrypts
+                 and decrypts. Used in testing of performance and verification of implementation.
+
+                 Unlike other NTRU functions, this encodes the character bytes into base 3 instead of base 2.and
+                 This function is experimental, and not part of the original NTRU algorithm but rather for innovation in this project.
+
+    Arguments:   - message_string: Message (string) to be encrypted
+                 - n: NTRU Parameter, set to 167 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 128 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+    """
     
     ntru_instance = ntru(n,p,q)
     ntru_instance.key_gen()
     full_string_length = len(message_string)
-
-    # message_string = "test"
 
     decoded_full_string = ""
 
     max_chars = int(math.floor(n/8))
 
     if len(message_string) % max_chars == 0:
-        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
 
     else:
         splits = splits = int(math.floor(full_string_length/max_chars)) + 1
 
     for i in range(0,splits):
 
-        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
         partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
         
         encoded_string = partial_msg_string.encode("utf-8")
@@ -524,26 +596,45 @@ def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_s
 
 
 def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+
+    """
+    Name:        ntru_with_parity
+
+    Description: End to end tester of NTRU Encrypt/Decrypt with added parity bit. Takes in message string, encrypts
+                 and decrypts. Used in testing of performance and verification of implementation.
+
+                 In addition to the base NTRU function, the message payload contains an extra parity bit.
+                 This parity bit is then checked in the decryption process, as a verification check.
+
+    Arguments:   - message_string: Message (string) to be encrypted
+                 - n: NTRU Parameter, set to 167 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 128 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+    """
     
     ntru_instance = ntru(n,p,q)
     ntru_instance.key_gen()
     full_string_length = len(message_string)
-
-    # message_string = "test"
 
     decoded_full_string = ""
 
     max_chars = int(math.floor(n/8))
 
     if len(message_string) % max_chars == 0:
-        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because we're just using UTF-8 256. 
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
 
     else:
         splits = splits = int(math.floor(full_string_length/max_chars)) + 1
 
     for i in range(0,splits):
-
-        # partial_msg_string = message_string[(i*max_chars) : (i+1)*max_chars]
         partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
         
         encoded_string = partial_msg_string.encode("utf-8")
@@ -579,11 +670,6 @@ def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = 
 
 
 print(ntru_with_parity("test", n=167))
-
-
-
-
-
 
 
 
