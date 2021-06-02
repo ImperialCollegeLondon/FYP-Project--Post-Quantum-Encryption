@@ -1,12 +1,11 @@
 #Main math imports
 import os
-from base64 import b64encode
+# from base64 import b64encode
 import numpy as np
 import random
 import string
 import math
-
-
+import time
 
 #Sympy imports (used for poly space)
 from sympy import ZZ, Poly, invert, GF, isprime
@@ -103,6 +102,32 @@ def bits_to_bytes(bit_array):
     return byte_value
 
 
+def trits_to_bytes(bit_array):
+
+    """
+    Name:        trits_to_bytes
+
+    Description: Converts ternary array to a byte value
+
+    Arguments:   - bit_array: Array of bits, where elements in array are -1,0 or 1
+
+    Returns:     - byte_value: Byte value in range [0,255]
+    """
+
+    byte_value = 0
+    three_power = 1
+
+    for bit in bit_array[::-1]:
+        byte_value += three_power * (bit+1)
+        three_power = three_power * 3
+
+
+    if byte_value > 255:
+        raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
+
+    return byte_value
+
+
 def bit_padding(bit_array,num_of_bits):
 
     """
@@ -141,6 +166,26 @@ def string_decode(bit_array):
     output_string = ""
     for i in range(0,int(len(bit_array)/8)):
         output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8])]).decode("utf-8")
+
+    return output_string
+
+
+
+def string_decode_ternary(bit_array):
+
+    """
+    Name:        string_decode_ternary
+
+    Description: Decode the string, from bytes (in UTF-8 format) to a string
+
+    Arguments:   - bit_array: Array of bits, where elements in array are -1, 0 or 1
+
+    Returns:     - output_string: Text string containing the message
+    """
+
+    output_string = ""
+    for i in range(0,int(len(bit_array)/6)):
+        output_string += bytes([trits_to_bytes(bit_array[i*6:(i+1)*6])]).decode("utf-8")
 
     return output_string
 
@@ -234,7 +279,7 @@ class ntru():
 
         Returns:     - g: Random polynomial of maximum degree n
         """
-
+        #num_ones = math.floor(self.n/3)
         num_ones = int(math.sqrt(self.q))
         num_zeros = self.n - 2*num_ones
 
@@ -332,7 +377,6 @@ class ntru():
             self.f_q = f_inv_q
             return f
 
-
     def key_gen(self):
 
         """
@@ -394,7 +438,7 @@ class ntru():
 
 
 
-def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+def ntru_end_to_end(message_string, n = 401, p = 3 , q = 2048, detailed_stats = False):
 
     """
     Name:        ntru_end_to_end
@@ -403,9 +447,9 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
                  and decrypts. Used in testing of performance and verification of implementation.
 
     Arguments:   - message_string: Message (string) to be encrypted
-                 - n: NTRU Parameter, set to 167 by default  
+                 - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 128 by default
+                 - q: NTRU Parameter, set to 2048 by default
                  - detailed_stats: If True, a dictionary containing public key information is returned.
                    Set to False by default. 
 
@@ -461,12 +505,17 @@ def ntru_end_to_end(message_string, n = 167, p = 3 , q = 128, detailed_stats = F
 
 
 
+
+# print(ntru_end_to_end('teststring'))
+
+
+
 # text_file = open("lorem_ipsum_test.txt", "r").read()
 
 # print(ntru_end_to_end(text_file))
 
 
-def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
+def ntru_aes_package(aes_size=256,n=401,p=3,q=2048, detailed_stats = False):
 
     """
     Name:        ntru_aes_package
@@ -475,9 +524,9 @@ def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
                  Generates random AES key, encrypts and decrypts. Used in testing of performance and verification of implementation.
 
     Arguments:   - aes_size: Size of AES payload. 128,192 and 256 bit supported.
-                 - n: NTRU Parameter, set to 167 by default  
+                 - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 128 by default
+                 - q: NTRU Parameter, set to 2048 by default
                  - detailed_stats: If True, a dictionary containing public key information is returned.
                    Set to False by default. 
 
@@ -503,16 +552,16 @@ def ntru_aes_package(aes_size=256,n=167,p=3,q=128, detailed_stats = False):
     
     
 
-def key_gen_helper(n=167,p=3,q=128):
+def key_gen(n=401,p=3,q=2048):
 
     """
-    Name:        key_gen_helper
+    Name:        key_gen
 
     Description: Function to generate NTRU keys.
 
-    Arguments:   - n: NTRU Parameter, set to 167 by default  
+    Arguments:   - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 128 by default
+                 - q: NTRU Parameter, set to 2048 by default
 
                  Where n is prime, p and q are coprime.
 
@@ -525,38 +574,32 @@ def key_gen_helper(n=167,p=3,q=128):
 
 
 
-def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+def encrypt(message_string,h,n=401,p=3,q=2048):
 
     """
-    Name:        ntru_end_to_end_ternary
+    Name:        encrypt
 
-    Description: End to end tester of NTRU Ternary Encrypt/Decrypt (base 3). Takes in message string, encrypts
-                 and decrypts. Used in testing of performance and verification of implementation.
+    Description: Function to encrypt a given message.
 
-                 Unlike other NTRU functions, this encodes the character bytes into base 3 instead of base 2.and
-                 This function is experimental, and not part of the original NTRU algorithm but rather for innovation in this project.
-
-    Arguments:   - message_string: Message (string) to be encrypted
-                 - n: NTRU Parameter, set to 167 by default  
+    Arguments:   - message_string: Message to be encrypted
+                 - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 128 by default
-                 - detailed_stats: If True, a dictionary containing public key information is returned.
-                   Set to False by default. 
+                 - q: NTRU Parameter, set to 2048 by default
+                 - h: Public key 
 
                  Where n is prime, p and q are coprime.
 
-    Returns:     - message_string: Returns the original message string.
-                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
-                   Contains details about the encryption, including the keys used.
+    Returns:     - encrypted_bits: Encrypted message as bits
     """
-    
+
     ntru_instance = ntru(n,p,q)
-    ntru_instance.key_gen()
+    ntru_instance.h = h
+
     full_string_length = len(message_string)
 
-    decoded_full_string = ""
-
     max_chars = int(math.floor(n/8))
+
+    encrypted_polynomial_arr = []
 
     if len(message_string) % max_chars == 0:
         splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
@@ -577,11 +620,141 @@ def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_s
         original_m = Poly(bit_list,x).set_domain(ZZ)
 
         encrypted_m = ntru_instance.encrypt(original_m)
+
+        encrypted_polynomial_arr.append(encrypted_m)
+
+
+    return encrypted_polynomial_arr
+
+
+def decrypt(encrypted_bits,f,f_p,n=401,p=3,q=2048):
+
+    """
+    Name:        decrypt
+
+    Description: Function to decrypt a given message.
+
+    Arguments:   - message_string: Message to be encrypted
+                 - f: NTRU Polynomial, private key
+                 - f_p: NTRU Polynomial, private key
+                 - n: NTRU Parameter, set to 401 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 2048 by default
+                 - h: Public key 
+
+                 Where n is prime, p and q are coprime.
+
+    NOTE: This function is currently experimental and only supports
+    block by block decrypting at this stage. 
+
+    Returns:     - encrypted_bits: Encrypted message as bits
+    """
+
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.f = f
+    ntru_instance.f_p = f_p
+
+    encrypted_m = encrypted_bits
+
+    decrypted_m = ntru_instance.decrypt(encrypted_m)
+
+    coeffs = bit_padding(decrypted_m.all_coeffs(),8)
+
+    decoded_string = string_decode(coeffs)
+
+    return decoded_string
+
+
+# n_values = [401,439,593,743]
+
+
+# for n in n_values:
+#     n_array = []
+#     for i in range(100):
+#         tic = time.perf_counter()
+#         key_gen(n,p=3,q=2048)
+#         toc = time.perf_counter()
+#         print(toc-tic)
+#         n_array.append(toc-tic)
+
+#     print(n,"array",n_array)
+#     print(sum(n_array)/len(n_array))
+
+# keys = key_gen(n=401,p=3,q=2048)
+
+#key_gen(n,p=3,q=2048)
+# encrypted_message = encrypt("test",keys['h'],401,3,2048)
+
+# print(encrypted_message)
+
+
+# print(decrypt(encrypted_message[0],keys['f'],keys['f_p'],401,3,2048))
+
+
+
+
+
+#f and f_p
+
+
+
+def ntru_end_to_end_ternary(message_string, n = 401, p = 3 , q = 2048, detailed_stats = False):
+
+    """
+    Name:        ntru_end_to_end_ternary
+
+    Description: End to end tester of NTRU Ternary Encrypt/Decrypt (base 3). Takes in message string, encrypts
+                 and decrypts. Used in testing of performance and verification of implementation.
+
+                 Unlike other NTRU functions, this encodes the character bytes into base 3 instead of base 2.and
+                 This function is experimental, and not part of the original NTRU algorithm but rather for innovation in this project.
+
+    Arguments:   - message_string: Message (string) to be encrypted
+                 - n: NTRU Parameter, set to 401 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - q: NTRU Parameter, set to 2048 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+    """
+    
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
+    full_string_length = len(message_string)
+
+    decoded_full_string = ""
+
+    max_chars = int(math.floor(n/6))
+
+    if len(message_string) % max_chars == 0:
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
+
+    else:
+        splits = splits = int(math.floor(full_string_length/max_chars)) + 1
+
+    for i in range(0,splits):
+
+        partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
+        
+        encoded_string = partial_msg_string.encode("utf-8")
+
+        byte_list = list(encoded_string)
+
+        bit_list = bytes_to_ternary(byte_list)
+
+        original_m = Poly(bit_list,x).set_domain(ZZ)
+
+        encrypted_m = ntru_instance.encrypt(original_m)
         decrypted_m = ntru_instance.decrypt(encrypted_m)
 
         coeffs = bit_padding(decrypted_m.all_coeffs(),6)
 
-        decoded_string = string_decode(coeffs)
+        decoded_string = string_decode_ternary(coeffs)
 
         decoded_full_string += decoded_string
 
@@ -595,7 +768,7 @@ def ntru_end_to_end_ternary(message_string, n = 167, p = 3 , q = 128, detailed_s
 
 
 
-def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = False):
+def ntru_with_parity(message_string, n = 401, p = 3 , q = 2048, detailed_stats = False):
 
     """
     Name:        ntru_with_parity
@@ -607,9 +780,9 @@ def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = 
                  This parity bit is then checked in the decryption process, as a verification check.
 
     Arguments:   - message_string: Message (string) to be encrypted
-                 - n: NTRU Parameter, set to 167 by default  
+                 - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 128 by default
+                 - q: NTRU Parameter, set to 2048 by default
                  - detailed_stats: If True, a dictionary containing public key information is returned.
                    Set to False by default. 
 
@@ -669,7 +842,121 @@ def ntru_with_parity(message_string, n = 167, p = 3 , q = 128, detailed_stats = 
         return(decoded_full_string)
 
 
-print(ntru_with_parity("test", n=167))
+def aes_generator(aes_size=256):
+
+    """
+    Name:        aes_generator
+
+    Description: Generates a random string which can be used as an AES key.
+
+    Arguments:   - aes_size: Size of AES payload. 128,192 and 256 bit supported. Set to 256 bits by default.
+
+    Returns:     - aes_key: Returns an AES key for the size specified.
+    """
+
+    valid_aes_sizes = [128,192,256]
+    if aes_size not in valid_aes_sizes:
+        raise ValueError("AES size has to be 128, 192 or 256 bits")
+
+    aes_key = ''.join(random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(int(aes_size/8)))
+
+    return aes_key
+
+
+print("here")
+
+
+# lorem_ipsum = open("lorem_ipsum_test.txt", "r").read()
+
+# # ntru_output = ntru_end_to_end_ternary(lorem_ipsum, n=167, p=3, q=128)
+
+# # print(ntru_output == lorem_ipsum)
+
+# base_two = []
+
+# for i in range(10):
+#     tic = time.perf_counter()
+#     ntru_output = ntru_end_to_end(lorem_ipsum, n=401, p=3, q=2048)
+#     toc = time.perf_counter()
+#     base_two.append(toc-tic)
+#     print(toc-tic)
+
+# print("BASE 2 TIMES", base_two)
+# print("average: ", sum(base_two)/len(base_two))
+
+
+# base_three = []
+
+# for i in range(10):
+#     tic = time.perf_counter()
+#     ntru_output = ntru_end_to_end_ternary(lorem_ipsum, n=401, p=3, q=2048)
+#     toc = time.perf_counter()
+#     base_three.append(toc-tic)
+#     print(toc-tic)
+
+# print("BASE 3 TIMES", base_three)
+# print("average: ", sum(base_three)/len(base_three))
+
+n_values = [401,439,593,743]
+
+for n in n_values:
+    encrypt_time = []
+    decrypt_time = []
+    keys = key_gen(n,p=3,q=2048)
+    print("Key Generated")
+    for i in range(20):
+        tic = time.perf_counter()
+        encrypted_message = encrypt("The quick brown fox",keys['h'],n,3,2048)[0]
+        toc = time.perf_counter()
+        decrypted_message = decrypt(encrypted_message,keys['f'],keys['f_p'],n,3,2048)
+        toc_two = time.perf_counter()
+        # print(toc-tic)
+        # print(toc_two-toc)
+        encrypt_time.append(toc-tic)
+        decrypt_time.append(toc_two-toc)
+
+    print(n)
+    print(encrypt_time)
+    print(sum(encrypt_time)/len(encrypt_time))
+    print("Decrypt time")
+    print(decrypt_time)
+    print(sum(decrypt_time)/len(decrypt_time))
+
+
+# for n in n_values:
+#     decrypt_time = []
+#     keys = key_gen(n,p=3,q=2048)
+#     encrypted_message = encrypt("The quick brown fox jumps over the lazy dog",keys['h'],n,3,2048)
+#     print("Key Generated")
+#     for i in range(10):
+#         tic = time.perf_counter()
+#         decrypted_message = decrypt(encrypted_message,keys['f'],keys['f_p'],n,3,2048)
+#         toc = time.perf_counter()
+#         print(toc-tic)
+#         decrypt_time.append(toc-tic)
+
+#     print(decrypt_time)
+#     print(sum(decrypt_time)/len(decrypt_time))
+
+
+# print(ntru_with_parity("test", n=401))
+
+
+# ntru_n_values = [401,439,593,743]
+# total_attempts = 0
+# attempt_array = []
+
+# for i in range(0,50):
+#     print("here")
+#     ntru_instance = ntru(401,3,2048)
+#     attempt = ntru_instance.f_gen(20)
+#     total_attempts += attempt
+#     attempt_array.append(attempt)
+
+
+# print(attempt_array)
+
+# print("average attempts", total_attempts/50)
 
 
 
@@ -680,9 +967,9 @@ print(ntru_with_parity("test", n=167))
 # # print(ntru_end_to_end("super duper long string just to see whether this can be decoded a;sjdf;ajsdfkl;jals;dfjl;asjdf;ajsdl;fja;lksdfj"))
 
 
-# # value_list = [87,503,347,251,167]
+# # value_list = [87,503,347,251,401]
 
-# # value_list = [167,251]
+# # value_list = [401,251]
 
 # # total_unsucc = 0 
 # # for j in value_list:
@@ -699,7 +986,7 @@ print(ntru_with_parity("test", n=167))
 #       original_m = Poly(-1 + random_ntru_instance*x + random_ntru_instance*x**2 + x**3 + x**4 + x**9 + x**10 + x**166,x).set_domain(ZZ)
 
 
-#       ntru_instance = ntru(j,3,128)
+#       ntru_instance = ntru(j,3,2048)
 #       ntru_instance.key_gen()
 #       encrypted_m = ntru_instance.encrypt(original_m)
 #       decrypted_m = ntru_instance.decrypt(encrypted_m)
