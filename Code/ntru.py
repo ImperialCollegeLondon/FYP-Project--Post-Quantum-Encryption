@@ -6,6 +6,7 @@ import random
 import string
 import math
 import time
+import reed_muller_coding
 
 #Sympy imports (used for poly space)
 from sympy import ZZ, Poly, invert, GF, isprime
@@ -76,14 +77,17 @@ def bytes_to_ternary(byte_array):
 
 
 
-def bits_to_bytes(bit_array):
+def bits_to_bytes(bit_array,check):
 
     """
     Name:        bits_to_bytes
 
     Description: Converts bit array to a byte value
 
-    Arguments:   - bit_array: Array of bits, where elements in array in 0 or 1  
+    Arguments:   - bit_array: Array of bits, where elements in array in 0 or 1
+                 - check: Boolean whether to check if byte value is valid or not. 
+                            As this function is reused for ECC decoding where
+                            valid byte value may not matter due to different base.  
 
     Returns:     - byte_value: Byte value in range [0,255]
     """
@@ -95,8 +99,7 @@ def bits_to_bytes(bit_array):
         byte_value += two_power * bit
         two_power = two_power * 2
 
-
-    if byte_value > 255:
+    if check and byte_value > 255:
         raise ValueError("Max Byte val: ", max(byte_array), " not in valid range")
 
     return byte_value
@@ -165,7 +168,7 @@ def string_decode(bit_array):
 
     output_string = ""
     for i in range(0,int(len(bit_array)/8)):
-        output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8])]).decode("utf-8")
+        output_string += bytes([bits_to_bytes(bit_array[i*8:(i+1)*8],True)]).decode("utf-8")
 
     return output_string
 
@@ -227,7 +230,68 @@ def parity_checker(bit_array,parity_bit):
     else:
         return False
 
-        
+
+def encrypted_message_encoder(encrypted_message,n):
+
+    """
+    Name:        encrypted_message_encoder
+
+    Description: Appends 0 to coefficients array, if the leading cofficient values are 0
+
+    Arguments:   - encrypted_message: Array of bits, where elements in array are 0 or 1  
+                 - n: Length the array should be
+
+    Returns:     - encrypted_message: Appended with leading zeros if required.
+    """
+
+
+    if n > len(encrypted_message):
+        raise RuntimeError("Check input for n or encrypted message. Not Valid")
+
+    else:
+        return [0]*(n-len(encrypted_message)) + encrypted_message
+
+
+def number_to_binary(number_array,bits):
+
+    """
+    Name:        number_to_binary
+
+    Description: Converts a number to binary representation with a given bit range.
+
+    Arguments:   - number_array: Array of numbers to be encoded into bits.
+                 - bits: Length of bit array for each number
+
+    Returns:     - bit_array: Array of bits, where elements in array are 0 or 1
+    """
+
+    bit_array = []
+
+    for num in number_array:
+        bit_array += [int(bit) for bit in np.binary_repr(num,width=bits)]
+
+    return bit_array
+
+def binary_to_number(bit_array,bits):
+
+    """
+    Name:       binary_to_number
+
+    Description: Converts binary to number representation with a given bit range.
+
+    Arguments:   - binary_array: Array of bits, where elements in array are 0 or 1 to be decoded into numbers.
+                 - bits: Length of bit array for each number
+
+    Returns:     - bit_array: Array of numbers
+    """
+
+    number_array = []
+
+    for i in range(int(len(bit_array)/bits)):
+        number_array.append(bits_to_bytes(bit_array[i*bits:(i+1)*bits], False))
+
+    return number_array
+
 
 class ntru():
     n = None
@@ -449,7 +513,7 @@ def ntru_end_to_end(message_string, n = 401, p = 3 , q = 2048, detailed_stats = 
     Arguments:   - message_string: Message (string) to be encrypted
                  - n: NTRU Parameter, set to 401 by default  
                  - p: NTRU Parameter, set to 3 by default
-                 - q: NTRU Parameter, set to 2048 by default
+                 - q: NTRU Parameter, set to 2048 by default.
                  - detailed_stats: If True, a dictionary containing public key information is returned.
                    Set to False by default. 
 
@@ -487,6 +551,7 @@ def ntru_end_to_end(message_string, n = 401, p = 3 , q = 2048, detailed_stats = 
         original_m = Poly(bit_list,x).set_domain(ZZ)
 
         encrypted_m = ntru_instance.encrypt(original_m)
+
         decrypted_m = ntru_instance.decrypt(encrypted_m)
 
         coeffs = bit_padding(decrypted_m.all_coeffs(),8)
@@ -505,14 +570,96 @@ def ntru_end_to_end(message_string, n = 401, p = 3 , q = 2048, detailed_stats = 
 
 
 
+def ntru_end_to_end_reed_muller(message_string, n = 401, p = 3, detailed_stats = False):
 
-# print(ntru_end_to_end('teststring'))
+    """
+    Name:        ntru_end_to_end_reed_muller
+
+    Description: End to end tester of NTRU Encrypt/Decrypt. Takes in message string, encrypts
+                 and decrypts. Used in testing of performance and verification of implementation.
+
+                 Added reed muller encoding and decoding inbetween encryption and decryption of numbers.
+
+    Arguments:   - message_string: Message (string) to be encrypted
+                 - n: NTRU Parameter, set to 401 by default  
+                 - p: NTRU Parameter, set to 3 by default
+                 - detailed_stats: If True, a dictionary containing public key information is returned.
+                   Set to False by default. 
+
+                   NOTE: Q MUST BE 2048 WITH THIS IMPLEMENTATION.
+
+                 Where n is prime, p and q are coprime.
+
+    Returns:     - message_string: Returns the original message string.
+                 - detailed_stats_dict: Optional, if detailed_stats is specified is True. 
+                   Contains details about the encryption, including the keys used.
+    """
+    
+    q = 2048
+    
+    #Defining NTRU Parameters:
+    r = 2
+    m = 4
+    reed_muller_gen_matrix,reed_muller_inverse_matrix,val_list = reed_muller_coding.matrix_gen(r, m)
+
+    ntru_instance = ntru(n,p,q)
+    ntru_instance.key_gen()
+    full_string_length = len(message_string)
+
+    decoded_full_string = ""
+
+    max_chars = int(math.floor(n/8))
+
+    if len(message_string) % max_chars == 0:
+        splits = int(math.floor(full_string_length/max_chars)) #define to be 8 here because UTF-8 256 is used. 
+
+    else:
+        splits = splits = int(math.floor(full_string_length/max_chars)) + 1
+
+    for i in range(0,splits):
+
+        partial_msg_string = message_string[(i*max_chars) : min(len(message_string),(i+1)*max_chars)]
+        
+        encoded_string = partial_msg_string.encode("utf-8")
+
+        byte_list = list(encoded_string)
+
+        bit_list = bytes_to_bits(byte_list)
+
+        original_m = Poly(bit_list,x).set_domain(ZZ)
+
+        encrypted_m = ntru_instance.encrypt(original_m)
+        encrypted_coeffs = encrypted_message_encoder(encrypted_m.all_coeffs(),n)
+
+        positive_coeffs = [int(i+(q/2)-1) for i in encrypted_coeffs]
+
+        encrypted_bits = number_to_binary(positive_coeffs,int(math.log(q,2)))
+
+        decoded_bits = []
+
+        for i in range(int(len(encrypted_bits)/11)):
+            reed_muller_bits = reed_muller_coding.encode(encrypted_bits[i*11:(i+1)*11], r, m, reed_muller_gen_matrix)
+            decoded_bits += reed_muller_coding.decode(reed_muller_bits, r, m, reed_muller_gen_matrix, reed_muller_inverse_matrix, val_list)
+
+        decoded_positive_coeffs = binary_to_number(decoded_bits,int(math.log(q,2)))
+
+        decoded_coeffs = [int(i-(q/2)+1) for i in decoded_positive_coeffs]
+
+        decrypted_m = ntru_instance.decrypt(Poly(decoded_coeffs,x).set_domain(ZZ))
+
+        coeffs = bit_padding(decrypted_m.all_coeffs(),8)
+
+        decoded_string = string_decode(coeffs)
+
+        decoded_full_string += decoded_string
 
 
-
-# text_file = open("lorem_ipsum_test.txt", "r").read()
-
-# print(ntru_end_to_end(text_file))
+    if detailed_stats:
+        detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+        return(detailed_stats_dict,decoded_full_string)
+    
+    else:
+        return(decoded_full_string)
 
 
 def ntru_aes_package(aes_size=256,n=401,p=3,q=2048, detailed_stats = False):
@@ -664,37 +811,6 @@ def decrypt(encrypted_bits,f,f_p,n=401,p=3,q=2048):
 
     return decoded_string
 
-
-# n_values = [401,439,593,743]
-
-
-# for n in n_values:
-#     n_array = []
-#     for i in range(100):
-#         tic = time.perf_counter()
-#         key_gen(n,p=3,q=2048)
-#         toc = time.perf_counter()
-#         print(toc-tic)
-#         n_array.append(toc-tic)
-
-#     print(n,"array",n_array)
-#     print(sum(n_array)/len(n_array))
-
-# keys = key_gen(n=401,p=3,q=2048)
-
-#key_gen(n,p=3,q=2048)
-# encrypted_message = encrypt("test",keys['h'],401,3,2048)
-
-# print(encrypted_message)
-
-
-# print(decrypt(encrypted_message[0],keys['f'],keys['f_p'],401,3,2048))
-
-
-
-
-
-#f and f_p
 
 
 
@@ -863,7 +979,24 @@ def aes_generator(aes_size=256):
     return aes_key
 
 
-print("here")
+
+print("Test Function Area")
+
+
+
+
+print(ntru_end_to_end_reed_muller("banana", n=167,p=5))
+
+
+# print(ntru_end_to_end('teststring',n=167,p=3,q=128))
+
+
+
+# text_file = open("lorem_ipsum_test.txt", "r").read()
+
+# print(ntru_end_to_end(text_file))
+
+
 
 
 # lorem_ipsum = open("lorem_ipsum_test.txt", "r").read()
@@ -897,30 +1030,30 @@ print("here")
 # print("BASE 3 TIMES", base_three)
 # print("average: ", sum(base_three)/len(base_three))
 
-n_values = [401,439,593,743]
+# n_values = [401,439,593,743]
 
-for n in n_values:
-    encrypt_time = []
-    decrypt_time = []
-    keys = key_gen(n,p=3,q=2048)
-    print("Key Generated")
-    for i in range(20):
-        tic = time.perf_counter()
-        encrypted_message = encrypt("The quick brown fox",keys['h'],n,3,2048)[0]
-        toc = time.perf_counter()
-        decrypted_message = decrypt(encrypted_message,keys['f'],keys['f_p'],n,3,2048)
-        toc_two = time.perf_counter()
-        # print(toc-tic)
-        # print(toc_two-toc)
-        encrypt_time.append(toc-tic)
-        decrypt_time.append(toc_two-toc)
+# for n in n_values:
+#     encrypt_time = []
+#     decrypt_time = []
+#     keys = key_gen(n,p=3,q=2048)
+#     print("Key Generated")
+#     for i in range(20):
+#         tic = time.perf_counter()
+#         encrypted_message = encrypt("The quick brown fox",keys['h'],n,3,2048)[0]
+#         toc = time.perf_counter()
+#         decrypted_message = decrypt(encrypted_message,keys['f'],keys['f_p'],n,3,2048)
+#         toc_two = time.perf_counter()
+#         # print(toc-tic)
+#         # print(toc_two-toc)
+#         encrypt_time.append(toc-tic)
+#         decrypt_time.append(toc_two-toc)
 
-    print(n)
-    print(encrypt_time)
-    print(sum(encrypt_time)/len(encrypt_time))
-    print("Decrypt time")
-    print(decrypt_time)
-    print(sum(decrypt_time)/len(decrypt_time))
+#     print(n)
+#     print(encrypt_time)
+#     print(sum(encrypt_time)/len(encrypt_time))
+#     print("Decrypt time")
+#     print(decrypt_time)
+#     print(sum(decrypt_time)/len(decrypt_time))
 
 
 # for n in n_values:
