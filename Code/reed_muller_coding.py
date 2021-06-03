@@ -3,6 +3,20 @@ import math
 import itertools
 
 def decimal_to_binary_comb(number,bin_len):
+
+    """
+    Name:        decimal_to_binary_comb
+
+    Description: Converts decimal number to binary representation, replacing 0 with -1
+                 Used to find permutations of a particular row
+    Arguments:   - number: Decimal number to be converted
+                 - bin_len: Length of representation as output 
+
+    Returns:     - bin_list: Binary representation list of number, with 0 replaced as -1
+    """
+
+
+
     bin_lst = [int(bit) for bit in np.binary_repr(number,width=bin_len)]
     bin_lst = [-1 if x==0 else x for x in bin_lst]
     return bin_lst
@@ -10,6 +24,19 @@ def decimal_to_binary_comb(number,bin_len):
 
 
 def matrix_gen(r,m):
+
+    """
+    Name:        matrix_gen
+
+    Description: Generates Reed-Muller Generator Matrix and associated variables
+                 required for encode and decode functions
+    Arguments:   - r: Reed-Muller parameter, output block size.
+                 - m: Reed-Muller parameter, input mesage size.
+
+    Returns:     - reed_muller_gen_matrix: Reed-Muller Generator Matrix
+                 - reed_muller_inverse_matrix: Reed-Muller Inverse Matrix, used for decode
+                 - val_list: List used for decoding, contains row count info.
+    """
     row_length = 2**m
     ones = math.floor(row_length/2)
     zeros = math.floor(row_length/2)
@@ -48,12 +75,37 @@ def matrix_gen(r,m):
 
 
 def encode(message,r,m,reed_muller_gen_matrix):
+    """
+    Name:        encode
+
+    Description: Encodes message bit stream into Reed-Muller bit stream.
+    Arguments:   - r: Reed-Muller parameter, output block size.
+                 - m: Reed-Muller parameter, input mesage size.
+                 - reed_muller_gen_matrix: Generator matrix, used to encode message.
+                   Derived from matrix_gen function.
+
+    Returns:     - encoded_transmisison: Message bit stream encoded as Reed-Muller code.
+    """
     encoded_transmission = np.dot(message,reed_muller_gen_matrix) % 2
 
     return encoded_transmission
 
 
 def decode(encoded_transmission,r,m,reed_muller_gen_matrix,reed_muller_inverse_matrix,val_list):
+    """
+    Name:        encode
+
+    Description: Encodes message bit stream into Reed-Muller bit stream.
+    Arguments:   - encoded_transmisison: Message bit stream encoded as Reed-Muller code.
+                 - r: Reed-Muller parameter, output block size.
+                 - m: Reed-Muller parameter, input mesage size.
+                 - reed_muller_gen_matrix: Generator matrix, used to decode message.
+                   Derived from matrix_gen function.
+                 - reed_muller_inverse_matrix: Inverse Reed-Muller generator matrix
+                 - val_list: Contains row count info 
+
+    Returns:     - decoded_message: Returns the original message bit stream. 
+    """
     row_length = 2**m
     perm_string = [i for i in range(1,m+1)]
 
