@@ -637,9 +637,21 @@ def ntru_end_to_end_reed_muller(message_string, n = 401, p = 3, detailed_stats =
 
         decoded_bits = []
 
+        encode_time = 0
+        decode_time = 0
+
         for i in range(int(len(encrypted_bits)/11)):
+            tic = time.perf_counter()
             reed_muller_bits = reed_muller_coding.encode(encrypted_bits[i*11:(i+1)*11], r, m, reed_muller_gen_matrix)
+            toc = time.perf_counter()
             decoded_bits += reed_muller_coding.decode(reed_muller_bits, r, m, reed_muller_gen_matrix, reed_muller_inverse_matrix, val_list)
+            toc_two = time.perf_counter()
+
+            encode_time += (toc-tic)
+            decode_time += (toc_two-toc)
+
+        print(encode_time)
+        print(decode_time)
 
         decoded_positive_coeffs = binary_to_number(decoded_bits,int(math.log(q,2)))
 
@@ -654,12 +666,14 @@ def ntru_end_to_end_reed_muller(message_string, n = 401, p = 3, detailed_stats =
         decoded_full_string += decoded_string
 
 
-    if detailed_stats:
-        detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
-        return(detailed_stats_dict,decoded_full_string)
+    return (encode_time,decode_time)
+
+    # if detailed_stats:
+    #     detailed_stats_dict = {"f": ntru_instance.f, "g": ntru_instance.g, "f_p": ntru_instance.f_p, "f_q": ntru_instance.f_q}
+    #     return(detailed_stats_dict,decoded_full_string)
     
-    else:
-        return(decoded_full_string)
+    # else:
+    #     return(decoded_full_string)
 
 
 def ntru_aes_package(aes_size=256,n=401,p=3,q=2048, detailed_stats = False):
@@ -985,7 +999,26 @@ print("Test Function Area")
 
 
 
-print(ntru_end_to_end_reed_muller("banana", n=167,p=5))
+# print(ntru_end_to_end_reed_muller("banana", n=167,p=3))
+
+
+
+print("Reed Muller Encode/Decode Testing")
+
+n_values = [409,439,593,743]
+
+for n_val in n_values:
+    encode_times = []
+    decode_times = []
+
+    for i in range(100):
+        encode_time,decode_time = ntru_end_to_end_reed_muller("test",n=n_val)
+        encode_times.append(encode_time)
+        decode_times.append(decodE_time)
+
+    print("Averages for: ", n_val)
+    print("Encode Average", sum(encode_times)/len(encode_times))
+    print("Decode Average", sum(decode_times)/len(decode_times))
 
 
 # print(ntru_end_to_end('teststring',n=167,p=3,q=128))
