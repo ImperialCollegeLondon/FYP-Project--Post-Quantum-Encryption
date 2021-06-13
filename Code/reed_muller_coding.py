@@ -182,6 +182,13 @@ def decode(encoded_transmission,r,m,reed_muller_gen_matrix,reed_muller_inverse_m
 
 # encoded_transmission = encode(message, 2, 4, reed_muller_gen_matrix)
 
+# print(encoded_transmission)
+
+# encoded_transmission[1] = 1
+# encoded_transmission[2] = 1
+
+# print(encoded_transmission)
+
 # decoded = decode(encoded_transmission, 2, 4, reed_muller_gen_matrix, reed_muller_inverse_matrix, val_list)
 
 # print(decoded)
