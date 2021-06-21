@@ -41,5 +41,7 @@ The Reed Muller python file contains 3 functions used to encode and decode messa
 
 
 
+### DISCLAIMER: This library is only used for test purposes, and I offer no security guarantees. Please only use this for learning, testing, benchmarking purposes and not for commercial deployment of a product. 
+
 
 
